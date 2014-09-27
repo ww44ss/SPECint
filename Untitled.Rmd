@@ -1,0 +1,22 @@
+---
+title: "VisualizeSPECInt"
+author: "Winston"
+date: "September 26, 2014"
+output: html_document
+---
+
+```{r "get_data"}
+
+url = "http://spec.org/cgi-bin/osgresults?conf=cpu2006;op=dump;format=csvdump"
+
+
+
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

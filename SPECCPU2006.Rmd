@@ -1,0 +1,143 @@
+---
+title: "VisualizeSPECInt"
+author: "Winston"
+date: "September 26, 2014"
+output: 
+html_document:
+    keep_md: true
+---
+
+###SPEC cpu2006 Trends for PCs
+
+###Synopisis
+
+This is a quick look at trends in CPU performance based on the set of published SPECCPU2006 benchmark. These are published at the [SPEC.org](http://spec.org/cpu2006/results/) website where you can read more about the benchmarkand data collection.
+
+CPUInt, studied here, is an important characteristic of computer performance. It measures the speed of integer (as opposed to floating point) operations.
+
+
+The question addressed here is "what factors have contributed most to increases in SPU performance?"
+
+
+###Data Processing
+
+The program checks for the existence of SPECCPU2006.csv on the local drive. If it does not find the file, it downloads it and then reads it into memory. 
+The file contains about 30,000 observations.  
+The data as downloaded are already very clean. The only real modifications are:  
+- date columns translated to _R_ data format.  
+- eliminate some zero Result values  
+
+```{r "get_data", echo=TRUE, cache=TRUE}
+
+
+## data are located at the SPEC website
+url <- "http://spec.org/cgi-bin/osgresults?conf=cpu2006;op=dump;format=csvdump"
+destfile <- "SPECCPU2006.csv"
+
+## check if the data are stored locally, and if not download
+if(!file.exists(destfile)) download.file(url, destfile)
+
+##read the data as a .csv file
+SPECdata <- read.csv(destfile)
+## the structure of the raw data
+str(SPECdata)
+
+```
+
+```{r "data_clean_dates", cache=TRUE}
+
+##convert data to dates in R format
+        ##The incoming data are in a mmm-YYYY format. 
+        ##I had to append a day to the date data (which I chose as the 15th (arbitrarily))
+        ## All date data are scrubbed though not all are necessarily used.
+
+        ## HW.Avail data
+        SPECdata$HW.Avail <- as.character(SPECdata$HW.Avail)
+        SPECdata$HW.Avail <- paste0("15-", SPECdata$HW.Avail)
+        SPECdata$HW.Avail<- as.Date(SPECdata$HW.Avail, format="%d-%b-%Y")
+
+        ## SW.Avail date
+        SPECdata$SW.Avail <- as.character(SPECdata$SW.Avail)
+        SPECdata$SW.Avail <- paste0("15-", SPECdata$SW.Avail)
+        SPECdata$SW.Avail<- as.Date(SPECdata$SW.Avail, format="%d-%b-%Y")
+
+        ## Test Date
+        SPECdata$Test.Date <- as.character(SPECdata$Test.Date)
+        SPECdata$Test.Date <- paste0("15-", SPECdata$Test.Date)
+        SPECdata$Test.Date<- as.Date(SPECdata$Test.Date, format="%d-%b-%Y")
+
+        ## Publication date
+        SPECdata$Published <- as.character(SPECdata$Published)
+        SPECdata$Published <- paste0("15-", SPECdata$Published)
+        SPECdata$Published<- as.Date(SPECdata$Published, format="%d-%b-%Y")
+
+```
+
+```{r "data_clean2_Values"}
+
+##clean up results 
+## Some spurious zero values need to be eliminated.
+SPECdata<-SPECdata[SPECdata$Result>3,]
+
+
+```
+
+
+Here is a look at some of the data.   To simplify the plot this data has been filtered for systems with two chips and the data factored for cores per chip.  
+Note the log scale. Roughly speaking computing performance has increased over a factor of ten since 2006, when the benchmark was first introduced.  
+Note that the data split into two bands.  We'll explore this in the Results section.
+
+```{r "expository_plot", echo=TRUE, cache=FALSE, fig.align='center'}
+
+#Plot Data as function of date by various facets
+
+library(ggplot2)
+
+SPECdataX<-SPECdata[SPECdata$X..Chips.==2,]
+
+P1 <- ggplot(SPECdataX, aes(x=HW.Avail, y=Result))+geom_point(shape=1)
+P1 <- P1 + scale_y_log10()
+P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
+#P1 <- P1 + facet_grid(X..Cores ~.)
+
+print(P1)
+
+
+
+```
+
+###Results
+
+```{r "Intel_Core_and_Xeon", echo=TRUE,fig.width=8,fig.align='center' }
+
+##Define ComputerType_x function to reduce data based on substring
+        
+        ##name_string is the string used to catergorize results (e.g. "Core")
+        ##search string is what is used to select elements for the category
+        ##Output is the data aggregation file. Note it should be set to NULL prior to running this for the first time.
+        ##input is the raw data file
+        ##The Outputfile add a column to the input data with the output 
+
+        ComputerType_x <- function(name_string, search_string, output=SPECdata_x, input=SPECdata) { 
+                temp <- input[grepl(search_string, input$Processor., ignore.case=TRUE), ]
+                names <- rep(name_string, dim(temp)[1])
+                temp<- cbind (names, temp)
+                rbind(temp, output)
+                }
+
+SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
+
+SPECdata_x<-NULL
+
+        SPECdata_x<-ComputerType_x("Intel Core", "core", input=SPECdataReduce)
+        SPECdata_x<-ComputerType_x("Intel Xeon", "xeon")
+
+P1 <- ggplot(SPECdata_x, aes(x=HW.Avail, y=Result))+geom_point(shape=1)
+P1 <- P1 + scale_y_log10()
+P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
+P1<- P1 + facet_grid(. ~ names)
+#P1 <- P1 + facet_grid(X..Cores ~.)
+
+print(P1)
+
+str(SPECdata_x)
