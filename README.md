@@ -9,9 +9,12 @@ This repository contains a single R program which does an analysis of SPEC CPU20
 The program automatically downloads data directly form the SPEC.org website for processing.    
 The data file is ~ 20MB.
 
-Files:
-SPECCPU2006.Rmd    This is the R Markdown document of the analysis   
-SPECCPU2006.html   html verison of the analysis   
+Files:   
+   
+_SPECCPU2006.Rmd_       This is the R Markdown document of the analysis 
+
+
+_SPECCPU2006.html_      html verison of the analysis   
 
 
 
