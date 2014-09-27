@@ -1,4 +1,4 @@
-SPECint
+SPEC CPU 2006 analysis
 =======
 
 Quick picture of SPECCPU 2006 trends of processor performance. 

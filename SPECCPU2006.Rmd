@@ -1,6 +1,6 @@
 ---
 title: "Understanding Trends of SPEC CPU 2006"
-author: "Winston"
+author: "ww44ss"
 date: "September 26, 2014"
 output: 
 html_document:
