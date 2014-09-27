@@ -14,16 +14,21 @@ This is a quick look at trends in CPU performance based on the set of published 
 
 CINT2006rate and CFP2006rate, studied here, measure important characteristics of computer performance and are widely followed benchmarks with a long history.
 
-The question addressed here is "what factors have contributed most to increases in CPU performance?" The main conclusion is that core count and CPU frequency have contributed to performance gains since 2006, with the increase in core count playing the larger role. 
+
+In the last few years it seems both MHz and core counts of processors have been increasing. 
+The question addressed here is "whic factors have contributed most to increases in CPU performance over time?"   
+The approach is to look at the causes of performance increases (namely core count and frequency) and then examine 1. whether they are correlated to performance increases, and then 2. their behavior over time.   
+
+The main conclusion is that core count and CPU frequency contribute to performance gains since 2006, with increases in core count playing the larger role. 
 
 
 ###Data Processing
 
-The program checks for the existence of SPECCPU2006.csv on the local drive. This is a file containing all published results.  
-If the file is not found, the program downloads the data and then reads it into memory. (the file is too big for GitHub).  
+The program relies on web download for data. It checks for the existence of SPECCPU2006.csv on the local drive.
+If the file is not found, the program downloads the data to teh local drive and then reads it into memory. (the file is too big for GitHub).  
   
 The file contains about 30,000 observations.  
-The data as downloaded are already very clean. The only real modifications are:  
+The data as downloaded are already very clean. The only cleaning modifications are:  
 - date columns translated to _R_ data format.   
 - eliminate some zero Result values  
 - filter for the rate measurements  
@@ -77,34 +82,33 @@ str(SPECdata)
 ```{r "data_clean2_Values"}
 
 ##clean up results 
-## Some spurious zero values need to be eliminated.
-SPECdata<-SPECdata[SPECdata$Result>3,]
+        ## Some spurious zero values need to be eliminated.
+        SPECdata<-SPECdata[SPECdata$Result>3,]
 
 
 
-##Select only the RATE version of the benchmarks
-SPECdata<-SPECdata[as.character(SPECdata$Benchmark)=="CFP2006rate"|as.character(SPECdata$Benchmark)=="CINT2006rate",]
+        ##Select only the RATE version of the benchmarks
+        SPECdata<-SPECdata[as.character(SPECdata$Benchmark)=="CFP2006rate"|as.character(SPECdata$Benchmark)=="CINT2006rate",]
 
 
 ```
 
 
-Here is a first look at some of the data.  To simplify the plot this data has been filtered for systems with two chips and the data factored for cores per chip.  
-Note the log scale. Roughly speaking computing performance has increased over a factor of ten since 2006, when the benchmark was first introduced.  
-Note that the data split into two bands.  We'll explore this in the Results section.
+Here is a first look at some of the data.  
 
 ```{r "expository_plot", echo=TRUE, cache=FALSE, fig.align='center'}
 
 #Plot Data as function of date by various facets
 
-library(ggplot2)
+        library(ggplot2)
+        ##reduce chip count to four or lower
+        SPECdataX<-SPECdata[SPECdata$X..Chips.< 5,]
 
-SPECdataX<-SPECdata[SPECdata$X..Chips.==2,]
-
-P1 <- ggplot(SPECdataX, aes(x=HW.Avail, y=Result))+geom_point(shape=1)
-P1 <- P1 + scale_y_log10()
-P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
-#P1 <- P1 + facet_grid(X..Cores ~.)
+        ## create plot of results versus date
+        P1 <- ggplot(SPECdataX, aes(x=HW.Avail, y=Result))+geom_point(shape=1)
+        P1 <- P1 + scale_y_log10()
+        P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
+        
 
 print(P1)
 
@@ -112,11 +116,16 @@ print(P1)
 
 ```
 
+To simplify the plot this data has been filtered for systems with four chips and fewer and the data factored for cores per chip.  
+Note the log scale which range over a factor of 100. Roughly speaking computing performance has increased between a factor of ten and one hundred since 2006, when the benchmark was first introduced.  Based on a visual analysis core count seems to play a role in the performance increase, but other factors may as well. For instance processor frequency has long been associated with performance gains and has an obvious and direct correlation to processing speed. 
+
+However, this is a broad brush look at the data. Within it there are different types of chips and system configurations. 
+
 ###Results
 
-####Role of Core Count and the Comparison of Xeon and Core
+####Role of Core Count for Intel Xeon and Core processors
 
-Here we look at Intel Xeon adn Core microprocessors. To keep things simple we look at only systems with single chips in them, since multiple chips confound the analysis. The graph below shows clearly the dependency of performance on core count, but it is not the whole story. 
+Here we look at Intel Xeon (server) and Core (personal computer) microprocessors individually. Both processors share a common processing core. To keep comparisons unambiguous we look at only systems with single chips in them, since multiple chips confound the analysis. The graph below shows clearly the dependency of performance on core count in each family. 
 
 ```{r "Intel_Core_and_Xeon", echo=TRUE,fig.width=8,fig.align='center' }
 
@@ -135,19 +144,21 @@ Here we look at Intel Xeon adn Core microprocessors. To keep things simple we lo
                 rbind(temp, output)
                 }
 
-SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
-
-SPECdata_x<-NULL
+        ##take only single chip systems
+        SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
+        ##initialize data frame
+        SPECdata_x<-NULL
 
         SPECdata_x<-ComputerType_x("Intel Core", "core", input=SPECdataReduce)
         SPECdata_x<-ComputerType_x("Intel Xeon", "xeon", input=SPECdataReduce)
 
-P1 <- ggplot(SPECdata_x, aes(x=HW.Avail, y=Result))+geom_point(shape=1)
-P1 <- P1 + scale_y_log10()
-P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
-P1<- P1 + facet_grid(. ~ names)
-P1<-P1+xlab("Date")+ylab("SPEC CPU Result")+ggtitle("SPEC CPU 2006 rate vs. processor family")
-#P1 <- P1 + facet_grid(X..Cores ~.)
+        #plot
+        P1 <- ggplot(SPECdata_x, aes(x=HW.Avail, y=Result))+geom_point(shape=1)
+        P1 <- P1 + scale_y_log10()
+        P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
+        P1<- P1 + facet_grid(. ~ names)
+        P1<-P1+xlab("Date")+ylab("SPEC CPU Result")+ggtitle("SPEC CPU 2006 rate vs. processor family")
+
 
 print(P1)
 ```
@@ -157,83 +168,79 @@ Clearly the results for Xeon and Core are comparable, though the Xeon product fa
 
 ####The role of core count on Xeon Performance
 
-We can get a looking at the role core count plays by looking at a trend of the benchmarks as a function of core count directly. In the below graph I look at tthe different benchmarks based on core count. The upward trend is unmistakable. The apparent "roll-off" of the curve with core count is simply an artefact of the way the data are analyzed. The horizontal axis is linear and the vertical axis is logarithmic.
+We can get a looking at the role core count plays by looking at a trend of the benchmarks as a function of core count directly. In the below graph the integer and floating point benchmarks are shown based on core count. The upward trend is unmistakable. The apparent "roll-off" of the curve with core count is an artefact of the way the data are analyzed, i.e. the horizontal axis is linear and the vertical axis is logarithmic.
 
 ```{r "Intel_Core_CoreCount", echo=TRUE,fig.width=9,fig.align='center' }
 
-
-SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
-
-SPECdata_x<-NULL
-
+        ##take only single chip systems
+        SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
+        ##initialize results data.frame
+        SPECdata_x<-NULL
+        ##select Xeon processors
         SPECdata_x<-ComputerType_x("Intel Xeon", "xeon", input=SPECdataReduce)
-
-P1 <- ggplot(SPECdata_x, aes(x=factor(X..Cores.Per.Chip.), y=Result))
-P1 <- P1 + scale_y_log10()
-P1<- P1+ geom_boxplot(aes(fill=Benchmark))
-P1<-P1+xlab("Cores")+ylab("SPECint Result")+ggtitle("SPEC CPU 2006 rate vs. core count\nfor Intel Xeon")
-#P1 <- P1 + facet_grid(X..Cores ~.)
+        ##create plot of cores and results
+        P1 <- ggplot(SPECdata_x, aes(x=factor(X..Cores.Per.Chip.), y=Result))
+        P1 <- P1 + scale_y_log10()
+        P1<- P1+ geom_boxplot(aes(fill=Benchmark))
+        P1<-P1+xlab("Cores")+ylab("SPEC CPU Result")+ggtitle("SPEC CPU 2006 rate vs. core count\nfor Intel Xeon")
 
 print(P1)
 ```
 
-As core count increases, so does performance 
+As we expect, the data show that as core count increases, so does performance. But are core counts increasing over time?
 
 
 ####Trends of Number of Cores 
 
 ```{r "Intel_CoreCount_TrendX", echo=TRUE,fig.width=5,fig.align='center' }
 
-##Reduce data to single chip and and CINT2006rate
+        ##Reduce data to single chip and and CINT2006rate
 
-SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
-
-SPECdataReduce<-SPECdataReduce[as.character(SPECdataReduce$Benchmark)=="CINT2006rate",]
-
-
-SPECdata_x<-NULL
+        SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
+        SPECdataReduce<-SPECdataReduce[as.character(SPECdataReduce$Benchmark)=="CINT2006rate",]
+        ##clear data 
+        SPECdata_x<-NULL
 
         SPECdata_x<-ComputerType_x("Intel Xeon", "xeon", input=SPECdataReduce)
 
-dim(SPECdata_x)
+        dim(SPECdata_x)
 
-P1 <- ggplot(SPECdata_x, aes(x=HW.Avail,y=X..Cores.Per.Chip. ))
-
-P1 <- P1 + scale_y_log10()
-P1<- P1+ geom_point(shape=1)
-P1<-P1+xlab("Cores Per Chip")+ylab("Number of Cores")+ggtitle("Cores vs. Date\nfor single socket Xeon")
+        P1 <- ggplot(SPECdata_x, aes(x=HW.Avail,y=X..Cores.Per.Chip. ))
+        P1 <- P1 + scale_y_log10()
+        P1<- P1+ geom_point(shape=1)
+        P1<-P1+xlab("Cores Per Chip")+ylab("Number of Cores")+ggtitle("Cores vs. Date\nfor single socket Xeon")
 
 print(P1)
 
 ```
 
-A clear upward trend in the number of cores is evident. Note that core number is plotted on a logarithmic scale. Thus, cores contribute to increased performance, and the number of cores is increasing in a roughly exponential manner with time, thus our observation that performance increases with time is correlated.
+A clear upward trend in the number of cores is evident. Note that core number is plotted on a logarithmic scale. Thus, cores contribute to increased performance, and the number of cores is increasing in a roughly exponential manner with time, thus the observation that performance increases with time is correlates with the obersation that performance is increasing.
 
 ####The role of MHz
 
-We can also look at the effect of processor speed (MHz) on the benchmark. Here the water is a little muddier. The tie between MHz and performance is obvious. We can demonstrate it easily. 
+We can also look at the effect of processor speed (MHz) on the benchmark. The tie between MHz and performance is intuitively obvious. We can demonstrate it easily by looking at the data. 
 
-To simplify the picture I have reduced the data to only two and four core parts. In addition, we'll only look at the Integer benchmark CINT2006rate though similar conclusions hold for CFP2006rate.
+To simplify the picture we'lll look at only two and four core parts. In addition, we'll only look at the Integer benchmark CINT2006rate though similar conclusions hold for CFP2006rate.
 
 
 ```{r "Intel_Core_MHz", echo=TRUE,fig.width=9,fig.align='center' }
 
+        ##keep single chip systems with four or fewer processors and only the INT benchmark
+        SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
+        SPECdataReduce<-SPECdataReduce[SPECdataReduce$X..Cores.Per.Chip.<5,]
+        SPECdataReduce<-SPECdataReduce[as.character(SPECdataReduce$Benchmark)=="CINT2006rate",]
 
-SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
-SPECdataReduce<-SPECdataReduce[SPECdataReduce$X..Cores.Per.Chip.<5,]
-SPECdataReduce<-SPECdataReduce[as.character(SPECdataReduce$Benchmark)=="CINT2006rate",]
-
-
-SPECdata_x<-NULL
-
+        ##clear the results data frame
+        SPECdata_x<-NULL
+        ##select only core processors
         SPECdata_x<-ComputerType_x("Intel Core", "core", input=SPECdataReduce)
-
-P1 <- ggplot(SPECdata_x, aes(x=Processor.MHz, y=Result))
-P1 <- P1 + scale_y_log10()
-P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
-P1<-P1+xlab("MHz")+ylab("SPECint Result")+ggtitle("CINT2006rate vs. MHz\nfor 1 and 2 threads per core")
-P1 <- P1 + facet_grid(.~X..Threads.Per.Core)
-P1<- P1 + theme(axis.text.x = element_text(angle = 0)) 
+        ##cleate plot of Results v. MHz
+        P1 <- ggplot(SPECdata_x, aes(x=Processor.MHz, y=Result))
+        P1 <- P1 + scale_y_log10()
+        P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
+        P1<-P1+xlab("MHz")+ylab("SPECint Result")+ggtitle("CINT2006rate vs. MHz\nfor 1 and 2 threads per core")
+        P1 <- P1 + facet_grid(.~X..Threads.Per.Core)
+        P1<- P1 + theme(axis.text.x = element_text(angle = 0)) 
 
 print(P1)
 
@@ -241,14 +248,16 @@ print(P1)
 str(SPECdataReduce)
 ```
 
-The data show a clear relationship between speed and performance, as expected.   
+The data show a clear relationship between speed and performance, as expected. 
+  
+  
 The data are also factored by the number of threads per core. It's interesting to note that the two thread per core two core parts have performance nearly equal to the four core parts with one thread per core, as expected. Although hyperthreading has an important impact on the performance benchmark, it's impact is apparently reduced for higher core count. 
 
 
 
 ####Trend of MHz 
 
-With the relationship of MHz to performance established, the question is have MHz increased with time and to they play a strong role in the observed increase in performance.   
+With the relationship of MHz to performance established, the question is have MHz increased with time and do they play a strong role in the observed increase in performance.   
 
   
   
@@ -256,30 +265,27 @@ Here is a graph of MHZ for two core parts over time. The speed of the processors
 
 ```{r "Intel_MHz_TrendX", echo=TRUE,fig.width=9,fig.align='center' }
 
-##Reduce data to two cores and one thread per core
+        ##Reduce data to two cores 
 
-SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
-SPECdataReduce<-SPECdataReduce[SPECdataReduce$X..Cores.Per.Chip.==2,]
-#SPECdataReduce<-SPECdataReduce[SPECdataReduce$X..Threads.Per.Core==1,]
-SPECdataReduce<-SPECdataReduce[as.character(SPECdataReduce$Benchmark)=="CINT2006rate",]
+        SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
+        SPECdataReduce<-SPECdataReduce[SPECdataReduce$X..Cores.Per.Chip.==2,]
+        SPECdataReduce<-SPECdataReduce[as.character(SPECdataReduce$Benchmark)=="CINT2006rate",]
 
-
-SPECdata_x<-NULL
-
+        ##CLEAR RESULTS MATRIX
+        SPECdata_x<-NULL
+        ## select only core processors
         SPECdata_x<-ComputerType_x("Intel Core", "core", input=SPECdataReduce)
-
-dim(SPECdata_x)
-
-P1 <- ggplot(SPECdata_x, aes(x=HW.Avail,y=Processor.MHz ))
-P1 <- P1 + stat_smooth(method="lm")
-P1<- P1+ geom_point()
-P1<-P1+xlab("Date")+ylab("MHz")+ggtitle("MHz vs. Date\nfor single thread two core parts")
-#P1 <- P1 + facet_grid(.~X..Threads.Per.Core)
-#P1<- P1 + theme(axis.text.x = element_text(angle = 0)) 
+        ##plot MHz versus time
+        P1 <- ggplot(SPECdata_x, aes(x=HW.Avail,y=Processor.MHz ))
+        P1 <- P1 + stat_smooth(method="lm")
+        P1<- P1+ geom_point()
+        P1<-P1+xlab("Date")+ylab("MHz")+ggtitle("MHz vs. Date\nfor single thread two core parts")
 
 print(P1)
 
 ```
+
+Thus while MHz are increasing over time, their increase is much smaller than would account for the gain in performance observed. 
 
 ###Conclusions
 
