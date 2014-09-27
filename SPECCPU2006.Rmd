@@ -10,7 +10,7 @@ html_document:
 
 ###Synopisis
 
-This is a quick look at trends in CPU performance based on the set of published SPECCPU2006 benchmark. The results are pulled directly from those published on the [SPEC.org](http://spec.org/cpu2006/results/) website. You can read there more about the benchmark and data collection.
+This is a quick look at trends in CPU performance based on the set of published SPECCPU2006 benchmark. The results are pulled directly from those published on the [SPEC.org](http://spec.org/cpu2006/results/) website, where you can read more about the benchmark and data collection.
 
 CINT2006rate and CFP2006rate, studied here, measure important characteristics of computer performance and are widely followed benchmarks with a long history.
 
@@ -117,10 +117,8 @@ print(P1)
 ```
 
 To simplify the plot this data has been filtered for systems with four chips and fewer and the data factored for cores per chip.  
-Note the log scale which range over a factor of 100. Roughly speaking computing performance has increased between a factor of ten and one hundred since 2006, when the benchmark was first introduced.  Based on a visual analysis core count seems to play a role in the performance increase, but other factors may as well. For instance processor frequency has long been associated with performance gains and has an obvious and direct correlation to processing speed. 
-
-However, this is a broad brush look at the data. Within it there are different types of chips and system configurations. 
-
+Note the log scale which ranges over a factor of 100. Judging from this data computing performance has increased between a factor of ten and one hundred since 2006, when the benchmark was first introduced.  Based on a visual analysis core count seems to play a role in the performance increase, but other factors may as well. For instance processor frequency has long been associated with performance gains and has an obvious and direct correlation to processing speed. 
+ 
 ###Results
 
 ####Role of Core Count for Intel Xeon and Core processors
@@ -180,7 +178,8 @@ We can get a looking at the role core count plays by looking at a trend of the b
         SPECdata_x<-ComputerType_x("Intel Xeon", "xeon", input=SPECdataReduce)
         ##create plot of cores and results
         P1 <- ggplot(SPECdata_x, aes(x=factor(X..Cores.Per.Chip.), y=Result))
-        P1 <- P1 + scale_y_log10()
+        P1<-P1+ coord_cartesian(ylim = c(10, 1000)) 
+        P1 <- P1 + scale_y_log10(breaks=c(10,50, 100,500,1000))
         P1<- P1+ geom_boxplot(aes(fill=Benchmark))
         P1<-P1+xlab("Cores")+ylab("SPEC CPU Result")+ggtitle("SPEC CPU 2006 rate vs. core count\nfor Intel Xeon")
 
@@ -236,12 +235,13 @@ To simplify the picture we'lll look at only two and four core parts. In addition
         SPECdata_x<-ComputerType_x("Intel Core", "core", input=SPECdataReduce)
         ##cleate plot of Results v. MHz
         P1 <- ggplot(SPECdata_x, aes(x=Processor.MHz, y=Result))
-        P1 <- P1 + scale_y_log10()
+        P1<-P1+ coord_cartesian(ylim = c(10, 1000)) 
+        P1 <- P1 + scale_y_log10(breaks=c(10,50, 100,500,1000))
         P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
         P1<-P1+xlab("MHz")+ylab("SPECint Result")+ggtitle("CINT2006rate vs. MHz\nfor 1 and 2 threads per core")
         P1 <- P1 + facet_grid(.~X..Threads.Per.Core)
-        P1<- P1 + theme(axis.text.x = element_text(angle = 0)) 
-
+        P1<- P1 + theme(axis.text.x = element_text(angle = 0))
+    
 print(P1)
 
 
