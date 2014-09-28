@@ -1,7 +1,7 @@
 ---
 title: "Understanding Trends of SPEC CPU 2006"
 author: "ww44ss"
-date: "September 26, 2014"
+date: "revised September 28, 2014"
 output: 
 html_document:
     keep_md: true
@@ -212,9 +212,9 @@ As we expect, the data show that as core count increases, so does performance.  
         SPECdataReduce<-SPECdataReduce[as.character(SPECdataReduce$Benchmark)=="CINT2006rate",]
         ##clear data 
         SPECdata_x<-NULL
-
+        #Select Xeon and Core
         SPECdata_x<-ComputerType_x("Intel Xeon", "xeon", input=SPECdataReduce)
-        SPECdata_x<-ComputerType_x("Intel Core", "core", input=SPECdataReduce)
+        #SPECdata_x<-ComputerType_x("Intel Core", "core", input=SPECdataReduce)
 
         dim(SPECdata_x)
 
@@ -225,7 +225,7 @@ As we expect, the data show that as core count increases, so does performance.  
         P1<-P1+ coord_cartesian(ylim = c(1, 16)) 
         P1 <- P1 + scale_y_log10(breaks=c(1,2, 4,8,16))
         P1<-P1+ geom_point(aes(colour = factor(names)), pch=1)
-        P1<-P1+xlab("Cores Per Chip")+ylab("Number of Cores")+ggtitle("Cores vs. Date\nfor single socket Xeon and Core")
+        P1<-P1+xlab("Date")+ylab("Number of Cores")+ggtitle("Cores vs. Date\nfor single socket Xeon")
  
 #print(P1)
 
@@ -278,9 +278,9 @@ datadim=dim(SPECdata_x)
 # summarise
 ```
 
-The data now reflect `r datadim[1]` measurements, this time of single chip Xeon-based and Core-based systems for a single benchamrk CINT2006rate.  
+The data now reflect `r datadim[1]` measurements, this time of single chip Xeon-based systems for a single benchamrk CINT2006rate.  
 A clear upward trend in the number of cores is evident. Note that core number is plotted on a logarithmic scale.   
-A fit line is included which reflects a core count doubling time of `r taufit/365.` years. Thus, cores contribute to increased performance, and the number of cores is increasing in a roughly exponential manner with time.  
+A fit line is included which reflects a core count doubling time of _`r taufit/365.` years_. Thus, based on this analysis cores contribute to increased performance, and the number of cores is increasing in a roughly exponential manner with time.  
 __The observation that performance increases with time correlates with the obersation that performance is increasing.__
 
 ####The role of MHz
