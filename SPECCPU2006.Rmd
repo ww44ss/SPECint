@@ -24,14 +24,16 @@ The main conclusion is that core count and CPU frequency contribute to performan
 
 ###Data Processing
 
-The program relies on web download for data. It checks for the existence of SPECCPU2006.csv on the local drive.
-If the file is not found, the program downloads the data to teh local drive and then reads it into memory. (the file is too big for GitHub).  
+The program relies on web download for data.   
+It checks for the existence of SPECCPU2006.csv on the local drive and will use it if available. 
+If the file is not found, the program downloads the data to teh local drive and then reads it into memory.
+To ensure the most current version of the data delete the local copy.  
   
 The file contains about 30,000 observations.  
 The data as downloaded are already very clean. The only cleaning modifications are:  
 - date columns translated to _R_ data format.   
-- eliminate some zero Result values  
-- filter for the rate measurements  
+- eliminate some zero Result values.   
+- filter for the rate measurements.  
 
 ```{r "get_data", echo=TRUE, cache=TRUE}
 
@@ -47,15 +49,19 @@ if(!file.exists(destfile)) download.file(url, destfile)
 SPECdata <- read.csv(destfile)
 ## the structure of the raw data
 str(SPECdata)
+datasize<-dim(SPECdata)
 
 ```
+
+This gives an idea of the structure of the data in the SPECdata file.  
+There are `r datasize[1]` by `r datasize[2]` elements in all.  
 
 ```{r "data_clean_dates", cache=TRUE}
 
 ##convert data to dates in R format
         ##The incoming data are in a mmm-YYYY format. 
         ##I had to append a day to the date data (which I chose as the 15th (arbitrarily))
-        ## All date data are scrubbed though not all are necessarily used.
+        ## All date data in the file are converted, though not all are necessarily used in the current analysis.
 
         ## HW.Avail data
         SPECdata$HW.Avail <- as.character(SPECdata$HW.Avail)
@@ -82,10 +88,10 @@ str(SPECdata)
 ```{r "data_clean2_Values"}
 
 ##clean up results 
-        ## Some spurious zero values need to be eliminated.
+        ## Some spurious zero values need to be eliminated.To do that set high pass filter
         SPECdata<-SPECdata[SPECdata$Result>3,]
-
-
+        ## eliminate data with 15 cores per chip (obviously a typo since those do not exist).
+        SPECdata<-SPECdata[!SPECdata$X..Cores.Per.Chip.==15,]
 
         ##Select only the RATE version of the benchmarks
         SPECdata<-SPECdata[as.character(SPECdata$Benchmark)=="CFP2006rate"|as.character(SPECdata$Benchmark)=="CINT2006rate",]
@@ -94,58 +100,57 @@ str(SPECdata)
 ```
 
 
-Here is a first look at some of the data.  
+As a first look at the data just consider the Result (performance) versus date for the entire population of systems with four or fewer processors.
 
 ```{r "expository_plot", echo=TRUE, cache=FALSE, fig.align='center'}
 
 #Plot Data as function of date by various facets
 
         library(ggplot2)
-        ##reduce chip count to four or lower
+        ##reduce chip count to less than five.
         SPECdataX<-SPECdata[SPECdata$X..Chips.< 5,]
 
         ## create plot of results versus date
         P1 <- ggplot(SPECdataX, aes(x=HW.Avail, y=Result))+geom_point(shape=1)
         P1 <- P1 + scale_y_log10()
         P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
-        P1<-P1+xlab("Date")+ylab("SPEC CPU Result")+ggtitle("SPEC CPU 2006 rate vs. Date")
-
-        
+        P1<-P1+xlab("Date")+ylab("SPEC CPU Result")+ggtitle("SPEC CPU 2006 rate vs. Date/nfor systems with fewer than 4 chips")
 
 print(P1)
 
-
-
 ```
 
-The above graph plots the SPECCPUrate result versus time.  
-To simplify the plot this data has been filtered for systems with four chips and fewer and the data factored for cores per chip.  
-Note the log scale which ranges over a factor of 100. Judging from this data computing performance has increased between a factor of ten and one hundred since 2006, when the benchmark was first introduced.  Based on a visual analysis core count seems to play a role in the performance increase, but other factors may as well. For instance processor frequency has long been associated with performance gains and has an obvious and direct correlation to processing speed. 
+The above graph plots the SPECCPUrate results (both integer and floating point) versus time. 
+To simplify the plot this data has been filtered for systems with four chips and fewer and the data factored for cores per chip.      
+Note the log scale for the y-axis, which ranges over a factor of 100. Judging from this data, computing performance at a gross level has increased between a factor of ten and one hundred since 2006, when the benchmark was first introduced.  Core count seems to play a role in the performance increase, but other factors may as well. For instance processor frequency has long been associated with performance gains and has an obvious and direct correlation to processing speed. 
  
-###Results
+###Analysis and Results
 
 ####Role of Core Count for Intel Xeon and Core processors
 
-Here we look at Intel Xeon (server) and Core (personal computer) microprocessors individually. Both processors share a common processing core. To keep comparisons unambiguous we look at only systems with single chips in them, since multiple chips confound the analysis. The graph below shows clearly the dependency of performance on core count in each family. 
+Here we start to look deeper into the data. For specificity we look at Intel Xeon (server) and Core (personal computer) microprocessors individually. To keep comparisons unambiguous we look at only systems with single chips in them, since multiple chips will confound the analysis. The graph below shows clearly the dependency of performance on core count in each family. 
 
 ```{r "Intel_Core_and_Xeon", echo=TRUE,fig.width=8,fig.align='center' }
 
-##Define ComputerType_x function to reduce data based on substring
+##Define required analysis functions
+
+        ##Define ComputerType_x: a function to reduce data based on substring
         
-        ##name_string is the string used to catergorize results (e.g. "Core")
-        ##search string is what is used to select elements for the category
-        ##Output is the data aggregation file. Note it should be set to NULL prior to running this for the first time.
-        ##input is the raw data file
-        ##The Outputfile add a column to the input data with the output 
+                ##name_string is the string used to catergorize results (e.g. "Core")
+                ##search string is what is used to select elements for the category (e.g. "cor")
+                ##output specifies the data aggregation file. Note it should be set to NULL prior to running this for the first time.
+                ##input is the raw data file
+                ##The Outputfile adds a column to the input data with the output name_string
 
-        ComputerType_x <- function(name_string, search_string, output=SPECdata_x, input=SPECdata) { 
-                temp <- input[grepl(search_string, input$Processor., ignore.case=TRUE), ]
-                names <- rep(name_string, dim(temp)[1])
-                temp<- cbind (names, temp)
-                rbind(temp, output)
-                }
+                ComputerType_x <- function(name_string, search_string, output=SPECdata_x, input=SPECdata) { 
+                        temp <- input[grepl(search_string, input$Processor., ignore.case=TRUE), ]
+                        names <- rep(name_string, dim(temp)[1])
+                        temp<- cbind (names, temp)
+                        rbind(temp, output)
+                        }
 
-        ##take only single chip systems
+##Analysis
+        ##Take only single chip systems
         SPECdataReduce<-SPECdata[SPECdata$X..Chips.==1,]
         ##initialize data frame
         SPECdata_x<-NULL
@@ -161,14 +166,17 @@ Here we look at Intel Xeon (server) and Core (personal computer) microprocessors
         P1<- P1 + facet_grid(. ~ names)
         P1<-P1+xlab("Date")+ylab("SPEC CPU Result")+ggtitle("SPEC CPU 2006 rate vs. processor family")
 
+datadim<-dim(SPECdata_x)
 
 print(P1)
 ```
 
-Clearly the results for Xeon and Core are comparable, though the Xeon product family has higher core count and thus extends to higher performance.  
+After filtering data we have `r datadim[1]` elements. 
+
+What is interesting is that the results for Xeon and Core are comparable where core count overlaps. This makes sense as they share a common core architecture. The Xeon product family has higher core count and thus extends to higher performance.  
 
 
-####The role of core count on Xeon Performance
+####Exploring the role of core count on Xeon Performance
 
 We can get a looking at the role core count plays by looking at a trend of the benchmarks as a function of core count directly. In the below graph the integer and floating point benchmarks are shown based on core count. The upward trend is unmistakable. The apparent "roll-off" of the curve with core count is an artefact of the way the data are analyzed, i.e. the horizontal axis is linear and the vertical axis is logarithmic.
 
@@ -180,6 +188,7 @@ We can get a looking at the role core count plays by looking at a trend of the b
         SPECdata_x<-NULL
         ##select Xeon processors
         SPECdata_x<-ComputerType_x("Intel Xeon", "xeon", input=SPECdataReduce)
+
         ##create plot of cores and results
         P1 <- ggplot(SPECdata_x, aes(x=factor(X..Cores.Per.Chip.), y=Result))
         P1<-P1+ coord_cartesian(ylim = c(10, 1000)) 
@@ -190,12 +199,12 @@ We can get a looking at the role core count plays by looking at a trend of the b
 print(P1)
 ```
 
-As we expect, the data show that as core count increases, so does performance. But are core counts increasing over time?
+As we expect, the data show that as core count increases, so does performance.  But this only resolves part of our question about whether this is contributing to observed increase in performance over time, namely are core counts increasing over time?
 
 
 ####Trends of Number of Cores 
 
-```{r "Intel_CoreCount_TrendX", echo=TRUE,fig.width=5,fig.align='center' }
+```{r "Intel_CoreCount_TrendX", echo=TRUE,fig.width=8,fig.align='center' }
 
         ##Reduce data to single chip and and CINT2006rate
 
@@ -205,19 +214,74 @@ As we expect, the data show that as core count increases, so does performance. B
         SPECdata_x<-NULL
 
         SPECdata_x<-ComputerType_x("Intel Xeon", "xeon", input=SPECdataReduce)
+        SPECdata_x<-ComputerType_x("Intel Core", "core", input=SPECdataReduce)
 
         dim(SPECdata_x)
 
-        P1 <- ggplot(SPECdata_x, aes(x=HW.Avail,y=X..Cores.Per.Chip. ))
-        P1 <- P1 + scale_y_log10()
-        P1<- P1+ geom_point(shape=1)
-        P1<-P1+xlab("Cores Per Chip")+ylab("Number of Cores")+ggtitle("Cores vs. Date\nfor single socket Xeon")
 
-print(P1)
+        #since a fit line is picked 
+
+        P1 <- ggplot(SPECdata_x, aes(x=HW.Avail,y=X..Cores.Per.Chip. ))
+        P1<-P1+ coord_cartesian(ylim = c(1, 16)) 
+        P1 <- P1 + scale_y_log10(breaks=c(1,2, 4,8,16))
+        P1<-P1+ geom_point(aes(colour = factor(names)), pch=1)
+        P1<-P1+xlab("Cores Per Chip")+ylab("Number of Cores")+ggtitle("Cores vs. Date\nfor single socket Xeon and Core")
+ 
+#print(P1)
+
+datadim=dim(SPECdata_x)
 
 ```
 
-A clear upward trend in the number of cores is evident. Note that core number is plotted on a logarithmic scale. Thus, cores contribute to increased performance, and the number of cores is increasing in a roughly exponential manner with time, thus the observation that performance increases with time is correlates with the obersation that performance is increasing.
+```{r try_a_fit, echo=TRUE,fig.width=8,fig.align='center'}
+##Try an exponential fit based on a factor of two
+        # some starting values
+        #   Pick sensisible starting values
+        #   start date of 1 Jan 2006
+        #   doubling time constant of 2 years
+        #   convert to numerical values of days
+        tzero = as.numeric(as.Date("2006-01-01"), units = "days")
+        tau <- as.Date("2008-01-01")-as.Date("2006-01-01")
+        tau <- as.numeric(tau, units = "days")
+#as.numeric((SPECdata_x$HW.Avail[100])
+#tau
+        coredata <- as.numeric(SPECdata_x$X..Cores.Per.Chip, units="days")
+        datedata <- as.numeric(SPECdata_x$HW.Avail, units = "days")
+# do the fit
+        fit = nls(coredata ~ 2^((datedata - tzero)/tau), start=list(tzero=tzero,tau=tau))
+
+        ## get fit parameters
+        taufit <- summary(fit)$parameters[2,1]
+        tzerofit<-summary(fit)$parameters[1,1]
+        #pick 20 xdata points along x axis
+        fitframe <- data.frame(xdata = seq(min(datedata),max(datedata),len=20))
+        #define fit function to calculate fit output
+        fit<-function(x, tau=taufit, tzero=tzerofit){
+                2^((x-tzero)/tau)
+        }
+        #apply it to the xdata
+        fitdata<-sapply(fitframe, fit)
+        
+        
+        #convert xdata column to dates
+        fitframe$xdata<-as.Date(fitframe$xdata, origin="1970-01-01")
+        #bind columns
+        fitframe<-cbind(fitframe, fitdata)
+        #correct column names
+        colnames(fitframe)<-c("xdata", "fitdata")
+        #add data to plot
+
+        P1<-P1+geom_line(aes(x=fitframe$xdata, y = fitframe$fitdata, colour="Fit"), fitframe)
+
+        print(P1)
+
+# summarise
+```
+
+The data now reflect `r datadim[1]` measurements, this time of single chip Xeon-based and Core-based systems for a single benchamrk CINT2006rate.  
+A clear upward trend in the number of cores is evident. Note that core number is plotted on a logarithmic scale.   
+A fit line is included which reflects a core count doubling time of `r taufit/365.` years. Thus, cores contribute to increased performance, and the number of cores is increasing in a roughly exponential manner with time.  
+__The observation that performance increases with time correlates with the obersation that performance is increasing.__
 
 ####The role of MHz
 
