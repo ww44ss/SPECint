@@ -245,7 +245,7 @@ datadim=dim(SPECdata_x)
         tau <- as.numeric(tau, units = "days")
 #as.numeric((SPECdata_x$HW.Avail[100])
 #tau
-        coredata <- as.numeric(SPECdata_x$X..Cores.Per.Chip, units="days")
+        coredata <- as.numeric(SPECdata_x$X..Cores.Per.Chip)
         datedata <- as.numeric(SPECdata_x$HW.Avail, units = "days")
 # do the fit
         fit = nls(coredata ~ 2^((datedata - tzero)/tau), start=list(tzero=tzero,tau=tau))
@@ -345,15 +345,60 @@ Here is a graph of MHZ for two core parts over time. The speed of the processors
         SPECdata_x<-ComputerType_x("Intel Core", "core", input=SPECdataReduce)
         ##plot MHz versus time
         P1 <- ggplot(SPECdata_x, aes(x=HW.Avail,y=Processor.MHz ))
-        P1 <- P1 + stat_smooth(method="lm")
+        #P1 <- P1 + stat_smooth(method="lm")
         P1<- P1+ geom_point()
         P1<-P1+xlab("Date")+ylab("MHz")+ggtitle("MHz vs. Date\nfor single thread two core parts")
 
-print(P1)
+        ##Add a fit line below
 
 ```
 
-Thus while MHz are increasing over time, their increase is much smaller than would account for the gain in performance observed. 
+```{r try_another_fit, echo=TRUE,fig.width=8,fig.align='center'}
+##Try an exponential fit based on a factor of two
+        # some starting values
+        #   Pick sensisible starting values
+        #   start date of 1 Jan 2006
+        #   doubling time constant of 2 years
+        #   convert to numerical values of days
+        tzero = as.numeric(as.Date("2006-01-01"), units = "days")
+        tau <- as.Date("2008-01-01")-as.Date("2006-01-01")
+        tau <- as.numeric(tau, units = "days")
+#as.numeric((SPECdata_x$HW.Avail[100])
+#tau
+        mhzdata <- as.numeric(SPECdata_x$Processor.MHz)
+        datedata <- as.numeric(SPECdata_x$HW.Avail, units = "days")
+# do the fit
+        fit = nls(mhzdata ~ 2500*2^((datedata - tzero)/tau), start=list(tzero=tzero,tau=tau))
+
+        ## get fit parameters
+        taufit <- summary(fit)$parameters[2,1]
+        tzerofit<-summary(fit)$parameters[1,1]
+        #pick 20 xdata points along x axis
+        fitframe <- data.frame(xdata = seq(min(datedata),max(datedata),len=20))
+        #define fit function to calculate fit output
+        fit<-function(x, tau=taufit, tzero=tzerofit){
+                2500*2^((x-tzero)/tau)
+        }
+        #apply it to the xdata
+        fitdata<-sapply(fitframe, fit)
+        
+        
+        #convert xdata column to dates
+        fitframe$xdata<-as.Date(fitframe$xdata, origin="1970-01-01")
+        #bind columns
+        fitframe<-cbind(fitframe, fitdata)
+        #correct column names
+        colnames(fitframe)<-c("xdata", "fitdata")
+        #add data to plot
+
+        P1<-P1+geom_line(aes(x=fitframe$xdata, y = fitframe$fitdata, colour="Fit"), fitframe)
+
+        print(P1)
+
+# summarise
+```
+
+Thus while MHz are increasing over time, the doubling time __`r taufit/365` years__ is much longer than the doubling time for the cores, and thus accounts for a lower fraction of the gain in performance observed. 
 
 ###Conclusions
 
