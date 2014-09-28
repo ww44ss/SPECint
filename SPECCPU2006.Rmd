@@ -15,9 +15,9 @@ This is a quick look at trends in CPU performance based on the set of published 
 CINT2006rate and CFP2006rate, studied here, measure important characteristics of computer performance and are widely followed benchmarks with a long history.
 
 
-In the last few years it seems both MHz and core counts of processors have been increasing. 
-The question addressed here is "whic factors have contributed most to increases in CPU performance over time?"   
-The approach is to look at the causes of performance increases (namely core count and frequency) and then examine 1. whether they are correlated to performance increases, and then 2. their behavior over time.   
+In the last few years it both MHz and core count of processors have been increasing. 
+The question addressed here is "which factors have contributed most to increases in CPU performance over time?"   
+The approach is to look at the causes of performance increases (namely core count and frequency) and then examine 1. their correlation to performance increases, and then 2. their behavior over time.   
 
 The main conclusion is that core count and CPU frequency contribute to performance gains since 2006, with increases in core count playing the larger role. 
 
@@ -108,6 +108,8 @@ Here is a first look at some of the data.
         P1 <- ggplot(SPECdataX, aes(x=HW.Avail, y=Result))+geom_point(shape=1)
         P1 <- P1 + scale_y_log10()
         P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
+        P1<-P1+xlab("Date")+ylab("SPEC CPU Result")+ggtitle("SPEC CPU 2006 rate vs. Date")
+
         
 
 print(P1)
@@ -116,6 +118,7 @@ print(P1)
 
 ```
 
+The above graph plots the SPECCPUrate result versus time.  
 To simplify the plot this data has been filtered for systems with four chips and fewer and the data factored for cores per chip.  
 Note the log scale which ranges over a factor of 100. Judging from this data computing performance has increased between a factor of ten and one hundred since 2006, when the benchmark was first introduced.  Based on a visual analysis core count seems to play a role in the performance increase, but other factors may as well. For instance processor frequency has long been associated with performance gains and has an obvious and direct correlation to processing speed. 
  
@@ -152,7 +155,8 @@ Here we look at Intel Xeon (server) and Core (personal computer) microprocessors
 
         #plot
         P1 <- ggplot(SPECdata_x, aes(x=HW.Avail, y=Result))+geom_point(shape=1)
-        P1 <- P1 + scale_y_log10()
+        P1<-P1+ coord_cartesian(ylim = c(10, 1000)) 
+        P1 <- P1 + scale_y_log10(breaks=c(10,50, 100,500,1000))
         P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
         P1<- P1 + facet_grid(. ~ names)
         P1<-P1+xlab("Date")+ylab("SPEC CPU Result")+ggtitle("SPEC CPU 2006 rate vs. processor family")
@@ -161,7 +165,7 @@ Here we look at Intel Xeon (server) and Core (personal computer) microprocessors
 print(P1)
 ```
 
-Clearly the results for Xeon and Core are comparable, though the Xeon product family has higher core count and thus extends to higher performance
+Clearly the results for Xeon and Core are comparable, though the Xeon product family has higher core count and thus extends to higher performance.  
 
 
 ####The role of core count on Xeon Performance
