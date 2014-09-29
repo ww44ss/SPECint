@@ -19,7 +19,7 @@ In the last few years it both MHz and core count of processors have been increas
 The question addressed here is "which factors have contributed most to increases in CPU performance over time?"   
 The approach is to look at the causes of performance increases (namely core count and frequency) and then examine 1. their correlation to performance increases, and then 2. their behavior over time.   
 
-The main conclusion is that core count and CPU frequency contribute to performance gains since 2006, with increases in core count playing the larger role. 
+The main conclusion is that core count and CPU frequency contribute to performance gains since 2006, with increases in core count playing the larger role. But together these contributions explain only about half of the observed increase in performance, suggesting further investigation is required.
 
 
 ###Data Processing
@@ -131,21 +131,24 @@ As a first look at the data just consider the Result (performance) versus date f
         tzero = as.numeric(as.Date("2006-01-01"), units = "days")
         tau <- as.Date("2014-01-01")-as.Date("2006-01-01")
         tau <- as.numeric(tau, units = "days")
+
 #as.numeric((SPECdata_x$HW.Avail[100])
 #tau
         coredata <- as.numeric(SPECdataX$Result)
         datedata <- as.numeric(SPECdataX$HW.Avail, units = "days")
+#Initialize the start value
+        Ainitial<-coredata[1]
 # do the fit
-        fit = nls(coredata ~ 20*2^((datedata - tzero)/tau), start=list(tzero=tzero,tau=tau))
+        fit = nls(coredata ~ A*2^((datedata - tzero)/tau), start=list(A=Ainitial,tau=tau))
 
         ## get fit parameters
         taufit <- summary(fit)$parameters[2,1]
-        tzerofit<-summary(fit)$parameters[1,1]
+        Afit<-summary(fit)$parameters[1,1]
         #pick 20 xdata points along x axis
         fitframe <- data.frame(xdata = seq(min(datedata),max(datedata),len=20))
         #define fit function to calculate fit output
-        fit<-function(x, tau=taufit, tzero=tzerofit){
-                20*2^((x-tzero)/tau)
+        fit<-function(x, tau=taufit, A=Afit){
+                A*2^((x-tzero)/tau)
         }
         #apply it to the xdata
         fitdata<-sapply(fitframe, fit)
@@ -294,7 +297,7 @@ datadim=dim(SPECdata_x)
         tau <- as.numeric(tau, units = "days")
 #as.numeric((SPECdata_x$HW.Avail[100])
 #tau
-        coredata <- as.numeric(SPECdata_x$X..Cores.Per.Chip)
+        coredata <- as.numeric(SPECdata_x$X..Cores.Per.Chip.)
         datedata <- as.numeric(SPECdata_x$HW.Avail, units = "days")
 # do the fit
         fit = nls(coredata ~ 2^((datedata - tzero)/tau), start=list(tzero=tzero,tau=tau))
@@ -460,4 +463,4 @@ A dominant contributor to the increase in capability has been the trend of incre
 
 An additonal contribution to the increase in MHz, which also correlate to processor speed. But this contribution is not as important as core count. 
 
-However, there are more factors to consider to explain the entire observed increase, given `r tauoverall/365` years oberved for overall doubling is much smaller than `r 1./(1/taucores + 1/taufit)/365` years calculated from the core and MHz contributions. 
+However, there are more factors to consider to explain the entire observed increase, given `r tauoverall/365` years oberved for overall doubling is much smaller than `r 1./(1/taucores + 1/taufit)/365` years calculated from the core and MHz contributions. This suggests further investigation is required. Place to investigate include system cache sizes and system scale. 
