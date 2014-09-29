@@ -116,13 +116,62 @@ As a first look at the data just consider the Result (performance) versus date f
         P1<- P1+ geom_point(aes(colour = factor(X..Cores.Per.Chip.)))
         P1<-P1+xlab("Date")+ylab("SPEC CPU Result")+ggtitle("SPEC CPU 2006 rate vs. Date/nfor systems with fewer than 4 chips")
 
-print(P1)
 
+```
+
+
+
+```{r "a_fit", echo=TRUE,fig.width=8,fig.align='center'}
+##Try an exponential fit based on a factor of two
+        # some starting values
+        #   Pick sensisible starting values
+        #   start date of 1 Jan 2006
+        #   doubling time constant of 2 years
+        #   convert to numerical values of days
+        tzero = as.numeric(as.Date("2006-01-01"), units = "days")
+        tau <- as.Date("2014-01-01")-as.Date("2006-01-01")
+        tau <- as.numeric(tau, units = "days")
+#as.numeric((SPECdata_x$HW.Avail[100])
+#tau
+        coredata <- as.numeric(SPECdataX$Result)
+        datedata <- as.numeric(SPECdataX$HW.Avail, units = "days")
+# do the fit
+        fit = nls(coredata ~ 20*2^((datedata - tzero)/tau), start=list(tzero=tzero,tau=tau))
+
+        ## get fit parameters
+        taufit <- summary(fit)$parameters[2,1]
+        tzerofit<-summary(fit)$parameters[1,1]
+        #pick 20 xdata points along x axis
+        fitframe <- data.frame(xdata = seq(min(datedata),max(datedata),len=20))
+        #define fit function to calculate fit output
+        fit<-function(x, tau=taufit, tzero=tzerofit){
+                20*2^((x-tzero)/tau)
+        }
+        #apply it to the xdata
+        fitdata<-sapply(fitframe, fit)
+        
+        
+        #convert xdata column to dates
+        fitframe$xdata<-as.Date(fitframe$xdata, origin="1970-01-01")
+        #bind columns
+        fitframe<-cbind(fitframe, fitdata)
+        #correct column names
+        colnames(fitframe)<-c("xdata", "fitdata")
+        #add data to plot
+
+        P1<-P1+geom_line(aes(x=fitframe$xdata, y = fitframe$fitdata, colour="Fit"), fitframe)
+
+        print(P1)
+
+        ##make a tau overall for later use
+        tauoverall<-taufit
+
+# summarise
 ```
 
 The above graph plots the SPECCPUrate results (both integer and floating point) versus time. 
 To simplify the plot this data has been filtered for systems with four chips and fewer and the data factored for cores per chip.      
-Note the log scale for the y-axis, which ranges over a factor of 100. Judging from this data, computing performance at a gross level has increased between a factor of ten and one hundred since 2006, when the benchmark was first introduced.  Core count seems to play a role in the performance increase, but other factors may as well. For instance processor frequency has long been associated with performance gains and has an obvious and direct correlation to processing speed. 
+Note the log scale for the y-axis, which ranges over a factor of 100. Judging from this data, computing performance at a gross level has increased between a factor of ten and one hundred since 2006, when the benchmark was first introduced.  The data show an approximate doubling time of __`r taufit/365.` years__.   Core count seems to play a role in the performance increase, but other factors may as well. For instance processor frequency has long been associated with performance gains and has an obvious and direct correlation to processing speed. 
  
 ###Analysis and Results
 
@@ -275,6 +324,9 @@ datadim=dim(SPECdata_x)
 
         print(P1)
 
+        #make a tau cores variable for later use
+        taucores<-taufit
+
 # summarise
 ```
 
@@ -404,6 +456,8 @@ Thus while MHz are increasing over time, the doubling time __`r taufit/365` year
 
 Published performance data show an increase of roughly a factor of ten in the performance (computing speed) of microprocessors in the last eight years.  
 
-A dominant contributor to the increase in capability has been the trend of increasing core count with core count being correlated to processor speed and core count has been increasing roughly exponentially with time.  
+A dominant contributor to the increase in capability has been the trend of increasing core count with core count being correlated to processor speed and core count has been increasing roughly exponentially with time. But n 
 
 An additonal contribution to the increase in MHz, which also correlate to processor speed. But this contribution is not as important as core count. 
+
+However, there are more factors to consider to explain the entire observed increase, given `r tauoverall/365` years oberved for overall doubling is much smaller than `r 1./(1/taucores + 1/taufit)/365` years calculated from the core and MHz contributions. 
