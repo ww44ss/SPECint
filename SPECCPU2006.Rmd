@@ -466,7 +466,9 @@ An additonal contribution to the increase in MHz, which also correlate to proces
 However, there are more factors to consider to explain the entire observed increase, given `r tauoverall/365` years oberved for overall doubling is much smaller than `r 1./(1/taucores + 1/taufit)/365` years calculated from the core and MHz contributions. This suggests further investigation is required. Place to investigate include system cache sizes and system scale.  
   
     
-      
+
+
+###fin
         
           
           
