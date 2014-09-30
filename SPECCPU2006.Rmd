@@ -162,7 +162,7 @@ As a first look at the data just consider the Result (performance) versus date f
         colnames(fitframe)<-c("xdata", "fitdata")
         #add data to plot
 
-        P1<-P1+geom_line(aes(x=fitframe$xdata, y = fitframe$fitdata, colour="Fit"), fitframe)
+        P1<-P1+geom_line(aes(x=fitframe$xdata, y = fitframe$fitdata, colour="Fit"), fitframe, size=2)
 
         print(P1)
 
@@ -323,7 +323,7 @@ datadim=dim(SPECdata_x)
         colnames(fitframe)<-c("xdata", "fitdata")
         #add data to plot
 
-        P1<-P1+geom_line(aes(x=fitframe$xdata, y = fitframe$fitdata, colour="Fit"), fitframe)
+        P1<-P1+geom_line(aes(x=fitframe$xdata, y = fitframe$fitdata, colour="Fit"), fitframe, size=2)
 
         print(P1)
 
@@ -446,7 +446,7 @@ Here is a graph of MHZ for two core parts over time. The speed of the processors
         colnames(fitframe)<-c("xdata", "fitdata")
         #add data to plot
 
-        P1<-P1+geom_line(aes(x=fitframe$xdata, y = fitframe$fitdata, colour="Fit"), fitframe)
+        P1<-P1+geom_line(aes(x=fitframe$xdata, y = fitframe$fitdata, colour="Fit"), fitframe, size=2)
 
         print(P1)
 
@@ -463,4 +463,10 @@ A dominant contributor to the increase in capability has been the trend of incre
 
 An additonal contribution to the increase in MHz, which also correlate to processor speed. But this contribution is not as important as core count. 
 
-However, there are more factors to consider to explain the entire observed increase, given `r tauoverall/365` years oberved for overall doubling is much smaller than `r 1./(1/taucores + 1/taufit)/365` years calculated from the core and MHz contributions. This suggests further investigation is required. Place to investigate include system cache sizes and system scale. 
+However, there are more factors to consider to explain the entire observed increase, given `r tauoverall/365` years oberved for overall doubling is much smaller than `r 1./(1/taucores + 1/taufit)/365` years calculated from the core and MHz contributions. This suggests further investigation is required. Place to investigate include system cache sizes and system scale.  
+  
+    
+      
+        
+          
+          
